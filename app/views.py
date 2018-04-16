@@ -6,12 +6,9 @@ This file creates your application.
 """
 
 from app import app
-import os
-from flask import render_template, request, flash, url_for, redirect, flash, session, send_from_directory, abort
+from flask import render_template, request,jsonify
 from forms import UploadForm
 from werkzeug.utils import secure_filename
-rootdir = os.getcwd()
-print rootdir
 
 ###
 # Routing for your application.
@@ -24,20 +21,30 @@ def index():
     return render_template('index.html')
     
     
-@app.route('/api/upload', methods=["GET", "POST"])
+@app.route('/api/upload',methods = ['POST'])
 def upload():
-    error = None
+    """Uploads Form and returns JSON output"""
     form = UploadForm()
-    if (request.method == "POST"):
-        if form.validate() == False:
-            form_errors(form)
-        else:
-            file = form.upload.data
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            flash('File Saved', 'success')
-            return redirect(url_for('home', error=error))
-    return render_template('upload.html', form = form, error=error)
+    if request.method == 'POST' and form.validate_on_submit():
+        description = form.description.data
+        photo       = form.photo.data
+        filename    = secure_filename(photo.filename)
+        photo.save('app/static/photos/' + filename)
+        
+        photoInfo = {"message":"File Upload Successful",\
+                    "filename":filename,\
+                     "description":description
+            
+        }
+        
+        info = jsonify(photoInfo)
+        return info
+        
+    errors_list = []
+    for error in form_errors(form):
+        errors_list.append(dict({'error':error}))
+        
+    return jsonify({'Errors':errors_list})
     
 
 
